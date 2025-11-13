@@ -1,23 +1,36 @@
 Workspace/
 │
-├── Firmware/
+├── Firmware/                     # Everything that runs on the microcontroller
 │   ├── src/
-│   │   ├── main.ino
-│   │   ├── imu.h
-│   │   ├── imu.cpp
-│   │   ├── inflate.h
+│   │   ├── main.cpp              # main loop + system init
+│   │   ├── fsm.h                 # state machine definitions
+│   │   ├── fsm.cpp               # fall logic, deployment logic
+│   │
+│   │   ├── imu.h                 # IMU interface (read sensors)
+│   │   ├── imu.cpp               
+│   │
+│   │   ├── processing.h          # ANY processing: filters, windows, features
+│   │   ├── processing.cpp
+│   │
+│   │   ├── model_interface.h     
+│   │   ├── model_interface.cpp   # wraps whatever model Bill decides to use
+│   │
+│   │   ├── inflate.h             # inflator (CO₂ trigger) or could be peripherals
 │   │   ├── inflate.cpp
-│   │   ├── model_inference.h
-│   │   └── model_inference.cpp
+│   │
+│   │   ├── ble_notify.h          # optional: BLE notifications
+│   │   ├── ble_notify.cpp
+│   │
+│   │   ├── logger.h              # optional logging (serial, SD card)
+│   │   ├── logger.cpp
+│   │
+│   │   └── config.h              # system constants, thresholds
 │   │
 │   └── model/
-│       ├── model_weights.h      
-│       └── tinycnn_forward.cpp  
+│       ├── model_params.h        # Any parameters Bill gives you (weights, thresholds)
+│       ├── model_code.cpp        # Model logic (NN, thresholding, tree, etc.)
+│       └── metadata.h            # input size, version, config info
 │
-└── ML_Model/                    
-    ├── train_model.py
-    ├── export_to_c_array.py
-    ├── data/
-    │   └── (dataset files go here)
-    └── saved_models/
-        └── best_model.pt
+│
+└── ML_Model/                      # Bill will do this.
+   
