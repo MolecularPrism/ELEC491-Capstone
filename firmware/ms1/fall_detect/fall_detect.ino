@@ -14,6 +14,17 @@
 
 // -------------------- IMU (Nano 33 BLE Sense Rev2) --------------------
 #include <Arduino_BMI270_BMM150.h>  // provides IMU object
+#include <ArduinoBLE.h>
+
+/* ===================== BLE UUIDs ===================== */
+#define SERVICE_UUID "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
+#define RX_UUID      "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
+#define TX_UUID      "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"
+
+BLEService vestService(SERVICE_UUID);
+
+BLEStringCharacteristic rxChar(RX_UUID, BLEWrite, 20);
+BLEStringCharacteristic txChar(TX_UUID, BLENotify, 20);
 
 // -------------------- TFLite Micro --------------------
 #include "TensorFlowLite.h"
@@ -264,6 +275,22 @@ void setup() {
   }
   Serial.println("✅ IMU started.");
 
+   /* BLE Init */
+  if (!BLE.begin()) {
+    Serial.println("❌ BLE failed");
+    while (1);
+  }
+  BLE.setLocalName("Vest");
+  BLE.setAdvertisedService(vestService);
+
+  vestService.addCharacteristic(rxChar);
+  vestService.addCharacteristic(txChar);
+
+  BLE.addService(vestService);
+  BLE.advertise();
+
+  Serial.println("✅ BLE Advertising as Vest");
+
   // Optional: print IMU rates if supported
   // Serial.print("Acc rate: "); Serial.println(IMU.accelerationSampleRate());
   // Serial.print("Gyro rate: "); Serial.println(IMU.gyroscopeSampleRate());
@@ -337,6 +364,14 @@ static bool ReadIMUSample(float& ax, float& ay, float& az, float& gx, float& gy,
 }
 
 void loop() {
+  BLEDevice central = BLE.central();
+
+  if (central) {
+    Serial.print("📱 Connected: ");
+    Serial.println(central.address());
+  }
+
+
   static uint32_t last_ms = 0;
   uint32_t now = millis();
   if (now - last_ms < kSamplePeriodMs) return;
@@ -350,6 +385,16 @@ void loop() {
 
   // Push into rolling window
   PushFrame(ax, ay, az, gx, gy, gz);
+
+
+  /* Receive phone commands */
+  if (rxChar.written()) {
+    String cmd = rxChar.value();
+    Serial.print("Received: ");
+    Serial.println(cmd);
+
+    txChar.writeValue("ACK: " + cmd);
+  }
 
   // Optional: print raw sample occasionally
   // static int ctr = 0;
@@ -374,6 +419,7 @@ void loop() {
 
   if (pred == kFallClass) {
     Serial.println("🚨 Prediction: FALL (class=1)");
+    txChar.writeValue("🚨 FALL DETECTED");
   } else {
     Serial.println("✅ Prediction: NOT FALL (class=0)");
   }
